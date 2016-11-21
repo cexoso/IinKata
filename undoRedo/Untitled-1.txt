@@ -1,81 +1,64 @@
 const im = require("immutable");
-console.log(im)
-const onlySet = obj => key => value => {
-    console.log(`set key: ${key},value: ${value}`);
-    return obj[key] = value
-}
-const onlyGet = obj => key => obj[key];
-const onlyDel = obj => key => delete obj[key];
-const setRecord = stack => index => fun => {    
-    stack[index] = fun
-    stack.splice(index + 1);
-};
-const getRecord = stack => index => stack[index];
 function undoRedo(object) {
-    const onlySetObj = onlySet(object);
-    const onlygetObj = onlyGet(object);
-    const onlyDelObj = onlyDel(object);
-    const stack = [];
-    let index = -1;
-    const setRecordStack = setRecord(stack);
-    const getRecordStack = getRecord(stack);
-    function generRecord(obj,k) {        
-        if (Object.prototype.hasOwnProperty.call(obj,k)) {
-            const old = obj[k];
-            return ()=>{                
-                onlySetObj(k)(old);
-            }
-        } else {
-            return ()=>{                
-                onlyDelObj(k);
-            }
-        }
-    }
-	return {
-		set(key,value) {                        
-            setRecordStack(++ index)(generRecord(object,key));                        
-            onlySetObj(key)(value)
-        },
-		get(key) {
-            return onlygetObj(key);
-        },
-		del(key) {
-            setRecordStack(++ index)(generRecord(object,key));
-            onlyDelObj(key)
-        },
-		undo() {           
-            const record = getRecordStack(index--);
-            console.log(`undo:${record}`)
-            record.call();
-        },
-		redo: function() {}
-	};
-}
+    let obj = im.fromJS(object);
+    let index = 0;
+    const stack = [obj];
 
-const obj = {
+    return {
+        set(key, value) {
+            obj = obj.set(key, value);
+            index++;
+            stack.splice(index);
+            stack.push(obj);
+        },
+        get(key) {
+            return obj.get(key);
+        },
+        del(key) {
+            obj = obj.remove(key);
+            index++;
+            stack.splice(index);
+            stack.push(obj);
+        },
+        undo() {
+            const o = stack[index - 1];
+            if (o) {
+                obj = o;
+                index--;
+            } else {
+                throw new Error("can't undo");
+            }
+        },
+        redo() {
+            const o = stack[index + 1];
+            if (o) {
+                obj = o;
+                index++;
+            } else {
+                throw new Error("can't redo");
+            }
+        },
+        show() {
+            console.log("--------------------------\n")
+            console.log(`obj:${obj}`);
+            console.log(`stack:${stack}`);
+            console.log(`index:${index}`)
+            console.log("--------------------------\n")
+        }
+    };
+}
+var obj = {
     x: 1,
     y: 2
 };
-const unRe = undoRedo(obj);
 
-console.assert(unRe.get("x") === 1,"x should be 1");
-unRe.set('x', 3);
-console.assert(unRe.get("x") === 3,"x should be 3");
-
-console.assert(unRe.get("y") === 2,"y should be 2");
-unRe.set('y', 10);
-console.assert(unRe.get("y") === 10,"y should be 10");
+var unRe = undoRedo(obj);
+unRe.del('x');
+console.assert(unRe.get('x') === undefined, 'The x key should not exist');
+unRe.show();
+console.assert(obj.hasOwnProperty('x'), 'The x key should be deleted');
 unRe.undo();
-console.log(unRe.get("y"))
-console.assert(unRe.get("y") === 2,"y should be 2");
-
-unRe.del("x")
-console.assert(unRe.get("x") === void 0,"x should be undefined");
-unRe.undo();
-console.assert(unRe.get("x") === 3,"x should be 3");
-
-unRe.set("z",1)
-unRe.undo();
-console.assert(unRe.get("z") === void 0,"z should be undefined");
+console.assert(unRe.get('x') === 1, 'A new key has been added');
 unRe.redo();
-console.assert(unRe.get("z") === 1,"z should be 1");
+console.assert(unRe.get('x') === undefined, 'The x key should not exist');
+console.assert(obj.hasOwnProperty('x'), 'The x key should be deleted');
