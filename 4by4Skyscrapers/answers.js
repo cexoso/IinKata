@@ -1,9 +1,11 @@
 const _ = require("lodash")
 const {
-    property, range, set, at, reject, get, times, map,
+    property, range, set, at, reject, get, times, map, eq, curry,
     unary, reduce, reduceRight, partial,
-    includes, head, filter
+    includes, head, filter, flowRight, compact, size, lte,
+    every, zipWith, isEqual
 } = _
+const eq0 = partial(eq, 0)
 const gHightCounts = fromRight => xs => {
     const handle = fromRight ? reduceRight : reduce;
     const ret = handle(map(xs, x => ({ count: 1, value: x })), (acc, x) => {
@@ -20,9 +22,24 @@ const gHightCountsFromLeft = gHightCounts(false)
 function getVisitCount(xs) {
     return [gHightCountsFromLeft(xs), gHightCountsFromRight(xs)]
 }
-const validate = pairs => clues => pairs[0] <= clues[0] && pairs[1] <= clues[1]
-const getEnumNum = length => range(1, length + 1)
-const getCol = data => j => map(data, property(j))
+const validate = curry(function (isFullFilled, pairs, clues) {
+    const ret = zipWith(pairs, clues, function (p, c) {
+        if (eq0(c)) {
+            return true
+        }
+        const fn = curry(isFullFilled ? eq : lte)
+        return fn(p, c)
+    })
+    return every(ret)
+})
+const getConfig = ({ length }) => {
+    return {
+        enumNum: range(1, length + 1)
+    }
+}
+const getCol = curry(function (data, j) {
+    return map(data, property(j))
+})
 const getCurrent = ({ data, length, index, cluesList }) => {
     const i = ~~(index / length)
     const j = index % length
@@ -32,19 +49,22 @@ const getCurrent = ({ data, length, index, cluesList }) => {
         i,
         j,
         row: data[i],
-        col: getCol(data)(j),
+        col: getCol(data, j),
         rowClues,
         colClues
     }
 }
+const isFullFilled = length => flowRight(partial(eq, length), size, compact)
 const solvePuzzle = list => {
     const length = Math.sqrt(list.length)
     const ret = times(length, () => new Array(length))
-    const enumNum = getEnumNum(length)    
+    const { enumNum } = getConfig({ length })
     let index = 0;
-    while (index < list.length) {
+    let i = 1000
+    while (i-- !== 0 && index < list.length) {
         const { i, j, row, col, rowClues, colClues } = getCurrent({ data: ret, length, index, cluesList: list })
         const current = ret[i][j];
+        const isLengthFull = isFullFilled(length)
         if (ret[i][j] > length) {
             ret[i][j] = undefined
             index--;
@@ -58,7 +78,7 @@ const solvePuzzle = list => {
                 const afterRow = row;
                 const visitRow = getVisitCount(afterRow)
                 const visitCol = getVisitCount(afterCol)
-                if (validate(visitRow)(rowClues) && validate(visitCol)(colClues)) {
+                if (validate(isLengthFull(row), visitRow, rowClues) && validate(isLengthFull(afterCol), visitCol, colClues)) {
                     index++;
                 }
             } else {
@@ -72,5 +92,6 @@ const solvePuzzle = list => {
 module.exports = {
     getVisitCount,
     gHightCounts,
-    solvePuzzle
+    solvePuzzle,
+    validate
 }
