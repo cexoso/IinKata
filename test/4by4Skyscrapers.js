@@ -52,6 +52,26 @@ describe('4by4Skyscrapers', function () {
         var actual = solvePuzzle(clues);
         expect(expected).to.be.eqls(actual);
     })
+    it("can solve 6x6 puzzle 1", function () {
+        var clues = [
+            3, 2, 2, 3, 2, 1,
+            1, 2, 3, 3, 2, 2,
+            5, 1, 2, 2, 4, 3,
+            3, 2, 1, 2, 2, 4
+        ];
 
+        var expected = [
+            [2, 1, 4, 3, 5, 6],
+            [1, 6, 3, 2, 4, 5],
+            [4, 3, 6, 5, 1, 2],
+            [6, 5, 2, 1, 3, 4],
+            [5, 4, 1, 6, 2, 3],
+            [3, 2, 5, 4, 6, 1]
+        ];
+        console.log("start")
+        var actual = solvePuzzle(clues);
+        console.log(actual)
+        expect(expected).to.be.eqls(actual);
+    });
 });
 

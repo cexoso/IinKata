@@ -56,13 +56,16 @@ const getCurrent = ({ data, length, index, cluesList }) => {
 }
 const isFullFilled = length => flowRight(partial(eq, length), size, compact)
 const solvePuzzle = list => {
-    const length = Math.sqrt(list.length)
+    const length = list.length / 4
     const ret = times(length, () => new Array(length))
+    
     const { enumNum } = getConfig({ length })
     let index = 0;
-    let i = 1000
-    while (i-- !== 0 && index < list.length) {
+    
+    const retLength = length * length
+    while (index < retLength) {
         const { i, j, row, col, rowClues, colClues } = getCurrent({ data: ret, length, index, cluesList: list })
+        
         const current = ret[i][j];
         const isLengthFull = isFullFilled(length)
         if (ret[i][j] > length) {
@@ -86,6 +89,7 @@ const solvePuzzle = list => {
                 index--;
             }
         }
+        console.log(ret)
     }
     return ret
 }
